@@ -1,8 +1,11 @@
 #include <iostream>
 #include<fstream>
 #include<math.h>
-#include <stdio.h>
 #include <string>
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <cstring>
 
 
 using namespace std;
@@ -20,9 +23,9 @@ bool verificar_arreglos(char *g, char *contras);
 
 //Funciones del programa
 
-void tabla_peliculas();
+void tabla_peliculas(ifstream &Leer);
 
-int pago();
+int pago(int valor_compra);
 void generar_reporte();
 void printsala(int m, int n, char **matriz);
 void reserva_asiento(int m, int n, char **matriz, int num_boletas);
@@ -30,9 +33,10 @@ void cancelar_reserva(int m, int n, char **matriz, int num_boletas);
 
 int main()
 {
-    int opcion,opcion2,semilla=4,id,num_sala,hora,asiento_disp=5,cant_asiento=128;
-    string password,nom_pel,genero,duracion,clasificacion,formato,mes,dia;
-    ofstream Guardar;
+    int opcion,opcion2,opcion3,semilla=4,id,num_sala,hora,asiento_disp=5,cant_asiento=128;
+    string password,nom_pel,genero,duracion,clasificacion,formato,mes,dia,pelicula_aux;
+    ofstream Guardar, Guardar_estreno,Reemplazo;
+    ifstream Leer, Leer_estreno;
 
 
     do{
@@ -54,6 +58,10 @@ int main()
             if(metodo1(semilla,password)){
                 cout<<"Correcta"<<endl;
                 Guardar.open("cartelera.txt", ios::app); //abrir la base de datos
+                Guardar_estreno.open("estreno.txt", ios::app); //abrir la base de datos
+
+
+
                 do{
                     //Menu para el administrador
                     cout << "Bienvenido admin, seleccione una opcion, presione 0 para finalizar: " << endl
@@ -87,13 +95,14 @@ int main()
                         cin>>formato;
 
 
-                       Guardar<<id<<" | "<<nom_pel<<" | "<<genero<<" | "<<duracion<<" min"<<" | "<<num_sala<<"/"<<hora<<" | "<<asiento_disp<<
-                                "/"<<cant_asiento<<" | "<<clasificacion<<" | "<<formato<<" | "<<endl;
+                       Guardar<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<"  "<<num_sala<<"  "<<hora<<"  "<<asiento_disp<<
+                               "  "<<cant_asiento<<"  "<<clasificacion<<"  "<<formato<<"  "<<endl;
 
-
+                        Guardar.close();
                     }break;
                     case 2:{
-                        Guardar.open("estreno.txt", ios::app); //abrir la base de datos
+
+
                         cout << "Ingrese ID: "<<endl;
                         cin>>id;
                         cout << "Ingrese el nombre de la pelicula: "<<endl;
@@ -111,8 +120,8 @@ int main()
                         cout << "Ingrese si el formato es en 2D o 3D : "<<endl;
                         cin>>formato;
 
-                        Guardar<<id<<" | "<<nom_pel<<" | "<<genero<<duracion<<" min"<<" | "<<mes<<"/"<<dia<<
-                        " | "<<asiento_disp<<"/"<<cant_asiento<<" | "<<clasificacion<<" | "<<formato<<" | "<<endl;
+                        Guardar_estreno<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<
+                            "  "<<dia<<" "<<mes<<"  "<<clasificacion<<"  "<<formato<<endl;
 
 
                     }break;
@@ -122,6 +131,53 @@ int main()
                     }break;
                     case 4:{
 
+
+                    }break;
+                    case 5:{
+
+                        Leer.open("cartelera.txt",ios::in);
+                        Reemplazo.open("auxiliar.txt");
+                        Leer>>id;
+                        bool encontrado = false;
+                        cout <<"Ingrese id de la pelicula a eliminar: ";
+                        cin>>pelicula_aux;
+
+                        if(Leer.is_open()){
+                        while (!Leer.eof()){
+
+                            Leer>>nom_pel;
+                            Leer>>genero;
+                            Leer>>duracion;
+                            Leer>>num_sala;
+                            Leer>>hora;
+                            Leer>>asiento_disp;
+                            Leer>>cant_asiento;
+                            Leer>>clasificacion;
+                            Leer>>formato;
+
+                            if(to_string(id)==pelicula_aux){
+                                encontrado = true;
+
+                                cout<<"Eliminada exitosamente"<<endl;
+                            }else{
+
+                                Reemplazo<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<"  "<<num_sala<<"  "<<hora<<"  "<<asiento_disp<<
+                                        "  "<<cant_asiento<<"  "<<clasificacion<<"  "<<formato<<"  "<<endl;
+
+                            }
+                            Leer>>id;
+                        }
+                        }
+                        if(encontrado==false)
+                            cout<<"Pelicula no esta en cartelera"<<endl;
+
+                        Leer.close();
+                        Reemplazo.close();
+
+                        remove("cartelera.txt");
+
+                    }break;
+                    case 6:{
 
                     }break;
                     }
@@ -136,6 +192,80 @@ int main()
 
             }break;
             case 2:{
+             do{
+                //menu del usuario
+
+                cout << "Bienvenido admin, seleccione una opcion, presione 0 para finalizar: " << endl
+               << "1) Ver peliculas en cartelera. "<<endl
+               << "2) Ver peliculas en estreno. "<<endl
+               << "3) Comprar una entrada. "<<endl
+               << "4)Salir del menu del usuario."<<endl;cin>>opcion3;
+
+                switch (opcion3) {
+                    case 1:{
+                        Leer.open("cartelera.txt");
+                        Leer>>id;
+                    while (!Leer.eof()) {
+
+
+                        Leer>>nom_pel;
+                        Leer>>genero;
+                        Leer>>duracion;
+                        Leer>>num_sala;
+                        Leer>>hora;
+                        Leer>>asiento_disp;
+                        Leer>>cant_asiento;
+                        Leer>>clasificacion;
+                        Leer>>formato;
+
+                        cout<<"-------------------------------------------------------"<<endl;
+                        cout<<"| "<<id<<" | "<<nom_pel<<" | "<<genero<<" | "<<duracion<<" min"<<" | "<<num_sala<<"/"<<hora<<" | "<<asiento_disp<<
+                              "/"<<cant_asiento<<" | "<<clasificacion<<" | "<<formato<<" | "<<endl;
+                        cout<<"-------------------------------------------------------"<<endl;
+                        cout<<endl;
+                        Leer>>id;
+
+                    }
+                    Leer.close();
+
+
+                    }break;
+
+
+
+                    case 2:{
+                    Leer_estreno.open("estreno.txt");
+                    Leer_estreno>>id;
+                while (!Leer_estreno.eof()) {
+
+
+                    Leer_estreno>>nom_pel;
+                    Leer_estreno>>genero;
+                    Leer_estreno>>duracion;
+
+                    Leer_estreno>>dia;
+                    Leer_estreno>>mes;
+                    Leer_estreno>>clasificacion;
+                    Leer_estreno>>formato;
+
+                    cout<<"-------------------------------------------------------"<<endl;
+                    cout<<"| "<<id<<" | "<<nom_pel<<" | "<<genero<<" | "<<duracion<<" min"<<" | "<<dia<<"/"<<mes
+                          <<" | "<<clasificacion<<" | "<<formato<<" | "<<endl;
+                    cout<<"-------------------------------------------------------"<<endl;
+                    cout<<endl;
+                    Leer_estreno>>id;
+
+                }
+                Leer_estreno.close();
+
+                    }break;
+                    case 3:{
+
+                    }break;
+
+                }
+
+            }while(opcion3!=4);
 
             }break;
         }
@@ -145,15 +275,13 @@ int main()
 
 }
 
-void tabla_peliculas(){
 
-}
-
+//inicio de funciones
 
 
-int pago(){
+int pago(int valor_compra){
     int x,billete_50,billete_20,billete_10,billete_5,billete_2,billete_1,moneda_50,moneda_100,moneda_200,moneda_500;
-           cout<<"Ingrese el numero: ";cin>>x;
+           cout<<"Ingrese el dinero: ";cin>>x;
 
                    billete_50= x/50000;cout<<"Billetes de 50.000: "<<billete_50<<endl;
                    x=x%50000;
