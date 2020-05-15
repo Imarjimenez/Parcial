@@ -37,9 +37,10 @@ void cancelacion_num_asientos(int id_aux);
 void actualizar_ventas();
 bool buscar_pelicula(int id_aux);
 void printsala(int num_sala);
-void reserva_asiento(int m, int n, char **matriz, int num_boletas,int id_aux);
-void cancelar_reserva(int m, int n, char **matriz, int num_boletas);
-
+void reserva_asiento( int num_sala, int id_aux);
+void cancelar_reserva(int num_sala);
+void modificar_asiento(int num_sala, string sillas);
+int retorna_sala(int id_aux);
 int main()
 {
     int opcion,opcion2,opcion3,semilla=4,id,num_sala,hora,asiento_disp,cant_asiento,id_aux,num_boletas;
@@ -248,14 +249,16 @@ int main()
                         cout<<"Escriba el id de la pelicula: "<<endl;cin>>id_aux;
 
                         if(buscar_pelicula(id_aux)){
-                            cout<<"Ingrese la cantidad de entradas que desea comprar";cin>>num_boletas;
+
+
+                            reserva_asiento(retorna_sala(id_aux),id_aux);
                             pago(15000);
-                            actualizar_num_asientos(id_aux);
+
 
 
                         }
                         else {
-                            cout<<"Pelicula no encontrada";
+                            cout<<"Pelicula no encontrada"<<endl;
                         }
 
                     }break;
@@ -267,7 +270,7 @@ int main()
             }break;
         }
 
-    }while(opcion!=7);
+    }while(opcion!=3);
 
 
 }
@@ -585,8 +588,7 @@ void printsala(int num_sala){
     for (int i=1;i<=(fila*columna);i++) {
 
 
-        //sub_silla=sillas.substr(i,i+columna);
-       // i=i+columna-1;
+
         cout<<sillas.at(i-1);
         if(i%columna==0){
             cout<<endl;
@@ -599,8 +601,7 @@ void printsala(int num_sala){
 }
 
 void reserva_asiento(int num_sala,int id_aux){
-    string sillas;
-    int Num_salas;
+
     int fila,columna;
     if(num_sala>=1 && num_sala<=5){
        fila=9;columna=18;
@@ -614,56 +615,62 @@ void reserva_asiento(int num_sala,int id_aux){
     else {
         cout<<"Numero de sala no existe"<<endl;
     }
-     char matriz[fila][columna];
-
+    string sillas;
+    int Num_salas;
     ifstream Leer;
-    Leer.open("salas.txt");
+    Leer.open("salas.txt",ios::in);
     Leer>>Num_salas;
     while (!Leer.eof()) {
         Leer>>sillas;
         if(Num_salas==num_sala){
             cout<<"La sala numero "<<num_sala<<" es"<<endl;
-           // cout<<sillas<<endl;
+
             break;
 
         }
         Leer>>Num_salas;
     }
+    char matriz[fila][columna];
     Leer.close();
-    string sub_silla;
-    for (int i=1;i<=(fila*columna);i++) {
-
-
-        //sub_silla=sillas.substr(i,i+columna);
-       // i=i+columna-1;
-        cout<<sillas.at(i-1);
+    int col=0;
+    for (int i=0;i<(fila*columna);i++) {
         if(i%columna==0){
+            col=0;
+
             cout<<endl;
+
+
         }
-
+        cout<<sillas.at(i);
+        matriz[i/columna][col]=sillas.at(i); //Guardar cada silla en una matriz
+        col++;
     }
 
-    do{
-        cout<<"Ingrese la fila: "<<endl;cin>>fila;
-        cout<<"Ingrese el asiento(1-20): "<<endl; cin>>columna;
-    }
 
-    while(fila<65 || (fila>77 && fila<97) || fila>109);
 
-    columna=columna-1;
+    int fila_usu,columna_usu;
 
-    if(fila>=97 && fila<=109)
-        fila=fila-97;
-    else
-        fila=fila-65;
+        cout<<"Ingrese la fila:"
+              " "<<endl;cin>>fila_usu;
+        cout<<"Ingrese el asiento(1-18): "<<endl; cin>>columna_usu;
 
 
 
 
-    if (matriz[int (fila)][columna] =='-'){
-        matriz[int (fila)][columna] = '+';
+    if (matriz[fila_usu][columna_usu] =='+'){
+        matriz[fila_usu][columna_usu] = '-';
         cout<<"Asiento reservado."<<endl;
         actualizar_num_asientos(id_aux);
+        sillas="";
+        for (int i=0;i<fila;i++) {
+            for (int j=0;j<columna;j++) {
+                sillas=sillas+matriz[i][j];
+
+            }
+
+        }
+    modificar_asiento(num_sala,sillas);
+
 
 
     }
@@ -671,9 +678,9 @@ void reserva_asiento(int num_sala,int id_aux){
         cout<<"Asiento ocupado."<<endl;
 
     }
-    }
-
 }
+
+
 
 void cancelar_reserva(char **matriz,int num_boletas,int id_aux){
     char fila;
@@ -954,5 +961,76 @@ void crear_map(){//funcion donde revisa si el id existe
 
 
 
+
+}
+int retorna_sala(int id_aux){
+ifstream Leer;
+Leer.open("cartelera.txt",ios::in);
+
+int id,num_sala,hora,asiento_disp,cant_asiento;
+string nom_pel,genero,duracion,clasificacion,formato;
+
+
+
+Leer>>id;
+while(!Leer.eof()){
+    Leer>>nom_pel;
+    Leer>>genero;
+    Leer>>duracion;
+    Leer>>num_sala;
+    Leer>>hora;
+    Leer>>asiento_disp;
+    Leer>>cant_asiento;
+    Leer>>clasificacion;
+    Leer>>formato;
+
+    if(id==id_aux){
+        Leer.close();
+        return num_sala;
+
+
+
+    }
+    Leer>>id;
+}
+Leer.close();
+
+}
+void modificar_asiento(int num_sala,string Sillas){
+
+
+        ifstream Leer;
+        ofstream Reemplazo;
+        string sillas;
+        int Num_salas;
+
+        Leer.open("salas.txt",ios::in);
+        Reemplazo.open("auxiliar.txt");
+
+
+
+        Leer>>Num_salas;
+        while (!Leer.eof()) {
+            Leer>>sillas;
+            if(Num_salas==num_sala){
+                Reemplazo<<Num_salas<<" "<<Sillas<<endl;
+
+
+
+            }else{
+
+                Reemplazo<<Num_salas<<" "<<sillas<<endl;
+            }
+            Leer>>Num_salas;
+        }
+
+
+
+        Leer.close();
+        Reemplazo.close();
+
+
+        remove("salas.txt");
+        rename("auxiliar.txt","salas.txt");
 
 }
