@@ -4,14 +4,15 @@
 #include <string>
 #include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
-#include <cstring>
 
+#include <map>
+
+#include <array>
 
 using namespace std;
 //Funciones para la encriptacion de la contraseña
-
-void array(int AntorAct[],int binario[],int posi, int n);
+template<typename T>
+void array1(T AntorAct[],T binario[],int posi, int n);
 
 int Nceros(int array[],int tam);
 
@@ -21,22 +22,32 @@ bool metodo1(int semilla,string cont_ingresada);
 void DetoBin( int arrayBin[8],int a);
 bool verificar_arreglos(char *g, char *contras);
 
+
 //Funciones del programa
 
-void tabla_peliculas(ifstream &Leer);
-
+void tabla_peliculas();
+void estreno_peliculas();
+bool verifica_id(int id,ifstream &Leer);
+bool verifica_id_estreno(int id ,ifstream &Leer);
 int pago(int valor_compra);
 void generar_reporte();
-void printsala(int m, int n, char **matriz);
-void reserva_asiento(int m, int n, char **matriz, int num_boletas);
+void crear_map();
+void actualizar_num_asientos( int id_aux);
+void cancelacion_num_asientos(int id_aux);
+void actualizar_ventas();
+bool buscar_pelicula(int id_aux);
+void printsala(int num_sala);
+void reserva_asiento(int m, int n, char **matriz, int num_boletas,int id_aux);
 void cancelar_reserva(int m, int n, char **matriz, int num_boletas);
 
 int main()
 {
-    int opcion,opcion2,opcion3,semilla=4,id,num_sala,hora,asiento_disp=5,cant_asiento=128;
+    int opcion,opcion2,opcion3,semilla=4,id,num_sala,hora,asiento_disp,cant_asiento,id_aux,num_boletas;
     string password,nom_pel,genero,duracion,clasificacion,formato,mes,dia,pelicula_aux;
     ofstream Guardar, Guardar_estreno,Reemplazo;
     ifstream Leer, Leer_estreno;
+    array<int,10> salas= {162,162,162,162,162,234,234,234,126,126};//asientos segun la sala
+    map<int,int> venta;
 
 
     do{
@@ -57,7 +68,7 @@ int main()
 
             if(metodo1(semilla,password)){
                 cout<<"Correcta"<<endl;
-                Guardar.open("cartelera.txt", ios::app); //abrir la base de datos
+                Guardar.open("cartelera.txt",ios::out | ios::app); //abrir la base de datos
                 Guardar_estreno.open("estreno.txt", ios::app); //abrir la base de datos
 
 
@@ -93,13 +104,17 @@ int main()
                         cin>>clasificacion;
                         cout << "Ingrese si el formato es en 2D o 3D : "<<endl;
                         cin>>formato;
+                        cant_asiento=salas.at(num_sala-1);
 
 
+                       ifstream Leer("cartelera.txt",ios::in);
+                       if(verifica_id(id,Leer))
                        Guardar<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<"  "<<num_sala<<"  "<<hora<<"  "<<asiento_disp<<
                                "  "<<cant_asiento<<"  "<<clasificacion<<"  "<<formato<<"  "<<endl;
 
-                        Guardar.close();
+
                     }break;
+
                     case 2:{
 
 
@@ -120,64 +135,32 @@ int main()
                         cout << "Ingrese si el formato es en 2D o 3D : "<<endl;
                         cin>>formato;
 
+                        ifstream Leer("estreno.txt",ios::in);
+                        if(verifica_id_estreno(id,Leer))
                         Guardar_estreno<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<
                             "  "<<dia<<" "<<mes<<"  "<<clasificacion<<"  "<<formato<<endl;
 
 
                     }break;
                     case 3:{
-                    //Van haber 10 salas, 6 salas 2d/3d, 3 salas 4d y una sala  de menos capacidad.
+                    //Van haber 10 salas, 5 salas 2d/3d, 3 salas 4d y dos salas  de menos capacidad.
                     //el numero de la sala, conllevara la cantidad de asientos
+                        cout<<"Ingrese el numero de la sala: ";cin>>num_sala;
+                        printsala(num_sala);
                     }break;
                     case 4:{
 
 
                     }break;
                     case 5:{
+                        Guardar.close();
+                        tabla_peliculas();
 
-                        Leer.open("cartelera.txt",ios::in);
-                        Reemplazo.open("auxiliar.txt");
-                        Leer>>id;
-                        bool encontrado = false;
-                        cout <<"Ingrese id de la pelicula a eliminar: ";
-                        cin>>pelicula_aux;
-
-                        if(Leer.is_open()){
-                        while (!Leer.eof()){
-
-                            Leer>>nom_pel;
-                            Leer>>genero;
-                            Leer>>duracion;
-                            Leer>>num_sala;
-                            Leer>>hora;
-                            Leer>>asiento_disp;
-                            Leer>>cant_asiento;
-                            Leer>>clasificacion;
-                            Leer>>formato;
-
-                            if(to_string(id)==pelicula_aux){
-                                encontrado = true;
-
-                                cout<<"Eliminada exitosamente"<<endl;
-                            }else{
-
-                                Reemplazo<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<"  "<<num_sala<<"  "<<hora<<"  "<<asiento_disp<<
-                                        "  "<<cant_asiento<<"  "<<clasificacion<<"  "<<formato<<"  "<<endl;
-
-                            }
-                            Leer>>id;
-                        }
-                        }
-                        if(encontrado==false)
-                            cout<<"Pelicula no esta en cartelera"<<endl;
-
-                        Leer.close();
-                        Reemplazo.close();
-
-                        remove("cartelera.txt");
 
                     }break;
                     case 6:{
+                        Guardar_estreno.close();
+                        estreno_peliculas();
 
                     }break;
                     }
@@ -260,6 +243,20 @@ int main()
 
                     }break;
                     case 3:{
+                        system("cls");
+
+                        cout<<"Escriba el id de la pelicula: "<<endl;cin>>id_aux;
+
+                        if(buscar_pelicula(id_aux)){
+                            cout<<"Ingrese la cantidad de entradas que desea comprar";cin>>num_boletas;
+                            pago(15000);
+                            actualizar_num_asientos(id_aux);
+
+
+                        }
+                        else {
+                            cout<<"Pelicula no encontrada";
+                        }
 
                     }break;
 
@@ -280,8 +277,14 @@ int main()
 
 
 int pago(int valor_compra){
-    int x,billete_50,billete_20,billete_10,billete_5,billete_2,billete_1,moneda_50,moneda_100,moneda_200,moneda_500;
-           cout<<"Ingrese el dinero: ";cin>>x;
+    int x,y,billete_50,billete_20,billete_10,billete_5,billete_2,billete_1,moneda_50,moneda_100,moneda_200,moneda_500;
+           cout<<"Ingrese el dinero: ";cin>>y; x=y-valor_compra;int z=valor_compra-y;
+
+           if(y<valor_compra){
+           cout<<"Dinero incompleto, faltan "<<z<<endl;
+           }
+           else {
+
 
                    billete_50= x/50000;cout<<"Billetes de 50.000: "<<billete_50<<endl;
                    x=x%50000;
@@ -315,16 +318,68 @@ int pago(int valor_compra){
 
 
 
-                    return x;
+
+        }
+        return x;
 
 }
 void generar_reporte(){
 
 }
+void estreno_peliculas(){
+    int id,num_sala,hora,asiento_disp=5,cant_asiento=128;;
+    string nom_pel,genero,duracion,clasificacion,formato,mes,dia,pelicula_aux;
+    ifstream Leer;
+    ofstream Reemplazo;
+    Leer.open("estreno.txt",ios::in);
+    Reemplazo.open("auxiliar.txt");
+    Leer>>id;
+    bool encontrado = false;
+    cout <<"Ingrese id de la pelicula a eliminar: ";
+    cin>>pelicula_aux;
+
+    if(Leer.is_open()){
+    while (!Leer.eof()){
+
+        Leer>>nom_pel;
+        Leer>>genero;
+        Leer>>duracion;
+        Leer>>num_sala;
+        Leer>>hora;
+        Leer>>asiento_disp;
+        Leer>>cant_asiento;
+        Leer>>clasificacion;
+        Leer>>formato;
+
+        if(to_string(id)==pelicula_aux){
+            encontrado = true;
+
+            cout<<"Eliminada exitosamente"<<endl;
+        }else{
+
+            Reemplazo<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<
+                "  "<<dia<<" "<<mes<<"  "<<clasificacion<<"  "<<formato<<endl;
 
 
+        }
+        Leer>>id;
+    }
+    }
+    if(encontrado==false)
+        cout<<"Pelicula no esta en cartelera"<<endl;
 
-void array(int AntorAct[],int binario[],int posi, int n){
+    Leer.close();
+    Reemplazo.close();
+
+    string str("estreno.txt");
+    remove(str.c_str());
+    rename("auxiliar.txt","estreno.txt");
+
+}
+
+
+template<typename T>
+void array1(T AntorAct[],T binario[],int posi, int n){
 
     for(int i=0;i<n;i++){
         AntorAct[i]=binario[posi+i]; }//se forma un arreglo desde una cadena de n longitud y desde una posicion inicial
@@ -423,7 +478,7 @@ bool metodo1(int n,string cont_ingresada){
 
     for(int i=0;i<n;i++){//se invierte el primer bloque de n bits
 
-        array(anterior,binario,contador,n);
+        array1(anterior,binario,contador,n);
 
         if(anterior[i]==1){salida[i]=0;}
 
@@ -432,9 +487,9 @@ bool metodo1(int n,string cont_ingresada){
 
     for(int i=0;i<tam*8;i+=n){//aplicacion de condiciones
 
-        array(anterior,binario,contador,n);
+        array1(anterior,binario,contador,n);
         contador+=n;
-        array(actual,binario,contador,n);
+        array1(actual,binario,contador,n);
 
         int nceros=Nceros(anterior,4);
         int nunos=Nunos(anterior,4);
@@ -494,26 +549,100 @@ bool metodo1(int n,string cont_ingresada){
     //--------------------------------final del metodo 1---------------------------------
 
 }
-void printsala(int m,int n,char **matriz){
+void printsala(int num_sala){
+    string sillas;
+    int Num_salas;
+    int fila,columna;
+    if(num_sala>=1 && num_sala<=5){
+       fila=9;columna=18;
+    }
+    else if (num_sala>=6 && num_sala<=8) {
+        fila=13;columna=18;
+    }
+    else if (num_sala>=9 && num_sala<=10) {
+        fila=7;columna=18;
+    }
+    else {
+        cout<<"Numero de sala no existe"<<endl;
+    }
+     //char matriz[fila][columna];
 
-        for (int i = 0; i < m; i++)
-        {
-            for (int j = 0; j < n; j++)
-            {
+    ifstream Leer;
+    Leer.open("salas.txt");
+    Leer>>Num_salas;
+    while (!Leer.eof()) {
+        Leer>>sillas;
+        if(Num_salas==num_sala){
+            cout<<"La sala numero "<<num_sala<<" es"<<endl;
+           // cout<<sillas<<endl;
+            break;
 
-                cout << *(*(matriz + i) + j) << " ";
-            }
-            cout << endl;
         }
-        cout << endl;
+        Leer>>Num_salas;
+    }
+    Leer.close();
+    string sub_silla;
+    for (int i=1;i<=(fila*columna);i++) {
+
+
+        //sub_silla=sillas.substr(i,i+columna);
+       // i=i+columna-1;
+        cout<<sillas.at(i-1);
+        if(i%columna==0){
+            cout<<endl;
+        }
+
+    }
+
 
 
 }
 
-int reserva_asiento(int m, int n,char **matriz,int num_boletas,int asiento_disponible){
-    char fila;
-    int columna;
-    for (int i=0;i>num_boletas;i++) {
+void reserva_asiento(int num_sala,int id_aux){
+    string sillas;
+    int Num_salas;
+    int fila,columna;
+    if(num_sala>=1 && num_sala<=5){
+       fila=9;columna=18;
+    }
+    else if (num_sala>=6 && num_sala<=8) {
+        fila=13;columna=18;
+    }
+    else if (num_sala>=9 && num_sala<=10) {
+        fila=7;columna=18;
+    }
+    else {
+        cout<<"Numero de sala no existe"<<endl;
+    }
+     char matriz[fila][columna];
+
+    ifstream Leer;
+    Leer.open("salas.txt");
+    Leer>>Num_salas;
+    while (!Leer.eof()) {
+        Leer>>sillas;
+        if(Num_salas==num_sala){
+            cout<<"La sala numero "<<num_sala<<" es"<<endl;
+           // cout<<sillas<<endl;
+            break;
+
+        }
+        Leer>>Num_salas;
+    }
+    Leer.close();
+    string sub_silla;
+    for (int i=1;i<=(fila*columna);i++) {
+
+
+        //sub_silla=sillas.substr(i,i+columna);
+       // i=i+columna-1;
+        cout<<sillas.at(i-1);
+        if(i%columna==0){
+            cout<<endl;
+        }
+
+    }
+
     do{
         cout<<"Ingrese la fila: "<<endl;cin>>fila;
         cout<<"Ingrese el asiento(1-20): "<<endl; cin>>columna;
@@ -534,7 +663,7 @@ int reserva_asiento(int m, int n,char **matriz,int num_boletas,int asiento_dispo
     if (matriz[int (fila)][columna] =='-'){
         matriz[int (fila)][columna] = '+';
         cout<<"Asiento reservado."<<endl;
-        asiento_disponible--;
+        actualizar_num_asientos(id_aux);
 
 
     }
@@ -543,10 +672,10 @@ int reserva_asiento(int m, int n,char **matriz,int num_boletas,int asiento_dispo
 
     }
     }
-    return asiento_disponible;
+
 }
 
-int cancelar_reserva(int m, int n,char **matriz,int num_boletas,int asiento_disponible){
+void cancelar_reserva(char **matriz,int num_boletas,int id_aux){
     char fila;
     int columna;
     for (int i=0;i>num_boletas;i++) {
@@ -572,7 +701,7 @@ int cancelar_reserva(int m, int n,char **matriz,int num_boletas,int asiento_disp
     if (matriz[int (fila)][columna] =='+'){
         matriz[int (fila)][columna] = '-';
         cout<<"Cancelacion exitosa."<<endl;
-        asiento_disponible++;
+        cancelacion_num_asientos( id_aux);
 
     }
     else{
@@ -580,11 +709,250 @@ int cancelar_reserva(int m, int n,char **matriz,int num_boletas,int asiento_disp
 
     }
     }
-    return asiento_disponible;
+
 }
 
+void tabla_peliculas(){
+    int id,num_sala,hora,asiento_disp,cant_asiento;
+    string nom_pel,genero,duracion,clasificacion,formato,pelicula_aux;
+    ifstream Leer;
+    ofstream Reemplazo;
+    Leer.open("cartelera.txt",ios::in);
+    Reemplazo.open("auxiliar.txt");
+    Leer>>id;
+    bool encontrado = false;
+    cout <<"Ingrese id de la pelicula a eliminar: ";
+    cin>>pelicula_aux;
+
+    if(Leer.is_open()){
+    while (!Leer.eof()){
+
+        Leer>>nom_pel;
+        Leer>>genero;
+        Leer>>duracion;
+        Leer>>num_sala;
+        Leer>>hora;
+        Leer>>asiento_disp;
+        Leer>>cant_asiento;
+        Leer>>clasificacion;
+        Leer>>formato;
+
+        if(to_string(id)==pelicula_aux){
+            encontrado = true;
+
+            cout<<"Eliminada exitosamente"<<endl;
+        }else{
+
+            Reemplazo<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<"  "<<num_sala<<"  "<<hora<<"  "<<asiento_disp<<
+                    "  "<<cant_asiento<<"  "<<clasificacion<<"  "<<formato<<"  "<<endl;
+
+        }
+        Leer>>id;
+    }
+    }
+    if(encontrado==false)
+        cout<<"Pelicula no esta en cartelera"<<endl;
+
+    Leer.close();
+    Reemplazo.close();
+
+    string str("cartelera.txt");
+    remove(str.c_str());
+    rename("auxiliar.txt","cartelera.txt");
+
+}
+
+bool verifica_id(int id_aux, ifstream &Leer){
+
+    int id,num_sala,hora,asiento_disp,cant_asiento;
+    string nom_pel,genero,duracion,clasificacion,formato,pelicula_aux;
+
+    Leer>>id;
+    while(!Leer.eof()){
+        Leer>>nom_pel;
+        Leer>>genero;
+        Leer>>duracion;
+        Leer>>num_sala;
+        Leer>>hora;
+        Leer>>asiento_disp;
+        Leer>>cant_asiento;
+        Leer>>clasificacion;
+        Leer>>formato;
+
+        if(id==id_aux){
+            Leer.close();
+            cout<<"La pelicula no se puede agregar debido a que  el Id ya existe"<<endl;
+            return false;
+
+        }
+        Leer>>id;
+    }
+    Leer.close();
+    return true;
+
+}
+bool verifica_id_estreno(int id_aux ,ifstream &Leer){
+int id;
+string nom_pel,genero,duracion,clasificacion,formato,mes,dia;
+    Leer>>id;
+    while(!Leer.eof()){
+    Leer>>nom_pel;
+    Leer>>genero;
+    Leer>>duracion;
+
+    Leer>>dia;
+    Leer>>mes;
+    Leer>>clasificacion;
+    Leer>>formato;
+
+    if(id==id_aux){
+        Leer.close();
+        cout<<"La pelicula no se puede agregar debido a que  el Id ya existe"<<endl;
+        return false;
+
+    }
+    Leer>>id;
+    }
+Leer.close();
+return true;
+}
+
+bool buscar_pelicula(int id_aux){//funcion donde revisa si el id existe
+    ifstream Leer;
+    Leer.open("cartelera.txt",ios::in);
+    bool encontrado=false;
+    int id,num_sala,hora,asiento_disp,cant_asiento;
+    string nom_pel,genero,duracion,clasificacion,formato;
+
+
+
+    Leer>>id;
+    while(!Leer.eof() && !encontrado){
+        Leer>>nom_pel;
+        Leer>>genero;
+        Leer>>duracion;
+        Leer>>num_sala;
+        Leer>>hora;
+        Leer>>asiento_disp;
+        Leer>>cant_asiento;
+        Leer>>clasificacion;
+        Leer>>formato;
+
+        if(id==id_aux){
+            Leer.close();
+            cout<<"Continuemos con la compra"<<endl;
+            return true;
+
+
+        }
+        Leer>>id;
+    }
+    Leer.close();
+    if(!encontrado){
+        cout<<"Pelicula no encontrada"<<endl;
+        return false;
+    }
+
+
+
+}
+void cancelacion_num_asientos(int id_aux){
+    int id,num_sala,hora,asiento_disp,cant_asiento,asiento_disp_aux;
+    string nom_pel,genero,duracion,clasificacion,formato,pelicula_aux;
+    ifstream Leer("cartelera.txt",ios::in);
+    ofstream aux("auxiliar.txt",ios::out);
+    Leer>>id;
+    while(!Leer.eof()){
+        Leer>>nom_pel;
+        Leer>>genero;
+        Leer>>duracion;
+        Leer>>num_sala;
+        Leer>>hora;
+        Leer>>asiento_disp;
+        Leer>>cant_asiento;
+        Leer>>clasificacion;
+        Leer>>formato;
+        if(id==id_aux){
+            asiento_disp_aux=asiento_disp+1;
+            aux<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<"  "<<num_sala<<"  "<<hora<<"  "<<asiento_disp_aux<<
+                    "  "<<cant_asiento<<"  "<<clasificacion<<"  "<<formato<<"  "<<endl;
+        }
+        else {
+            aux<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<"  "<<num_sala<<"  "<<hora<<"  "<<asiento_disp<<
+                    "  "<<cant_asiento<<"  "<<clasificacion<<"  "<<formato<<"  "<<endl;
+        }
+        Leer>>id;
+    }
+    Leer.close();
+    aux.close();
+
+    remove("cartelera.txt");
+    rename("auxiliar.txt","cartelera.txt");
+}
+void actualizar_num_asientos(int id_aux){
+    int id,num_sala,hora,asiento_disp,cant_asiento,asiento_disp_aux;
+    string nom_pel,genero,duracion,clasificacion,formato,pelicula_aux;
+    ifstream Leer("cartelera.txt",ios::in);
+    ofstream aux("auxiliar.txt",ios::out);
+    Leer>>id;
+    while(!Leer.eof()){
+        Leer>>nom_pel;
+        Leer>>genero;
+        Leer>>duracion;
+        Leer>>num_sala;
+        Leer>>hora;
+        Leer>>asiento_disp;
+        Leer>>cant_asiento;
+        Leer>>clasificacion;
+        Leer>>formato;
+        if(id==id_aux){
+            asiento_disp_aux=asiento_disp-1;
+            aux<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<"  "<<num_sala<<"  "<<hora<<"  "<<asiento_disp_aux<<
+                    "  "<<cant_asiento<<"  "<<clasificacion<<"  "<<formato<<"  "<<endl;
+        }
+        else {
+            aux<<id<<"  "<<nom_pel<<"  "<<genero<<"  "<<duracion<<"  "<<num_sala<<"  "<<hora<<"  "<<asiento_disp<<
+                    "  "<<cant_asiento<<"  "<<clasificacion<<"  "<<formato<<"  "<<endl;
+        }
+        Leer>>id;
+    }
+    Leer.close();
+    aux.close();
+
+    remove("cartelera.txt");
+    rename("auxiliar.txt","cartelera.txt");
+}
+void crear_map(){//funcion donde revisa si el id existe
+    ifstream Leer;
+    Leer.open("cartelera.txt",ios::in);
+
+    int id,num_sala,hora,asiento_disp,cant_asiento;
+    string nom_pel,genero,duracion,clasificacion,formato;
+
+
+
+    Leer>>id;
+    while(!Leer.eof()){
+        Leer>>nom_pel;
+        Leer>>genero;
+        Leer>>duracion;
+        Leer>>num_sala;
+        Leer>>hora;
+        Leer>>asiento_disp;
+        Leer>>cant_asiento;
+        Leer>>clasificacion;
+        Leer>>formato;
 
 
 
 
 
+
+        Leer>>id;
+    }
+    Leer.close();
+
+
+
+
+}
