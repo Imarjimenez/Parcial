@@ -35,7 +35,7 @@ void actualizar_num_asientos( int id_aux);
 void cancelacion_num_asientos(int id_aux);
 bool buscar_pelicula(int id_aux);
 void printsala(int num_sala);
-void reserva_asiento( int num_sala, int id_aux);
+int reserva_asiento( int num_sala, int id_aux);
 void cancelar_reserva(int num_sala, int id_aux);
 void modificar_asiento(int num_sala, string sillas);
 int retorna_sala(int id_aux);
@@ -277,8 +277,8 @@ int main()
                         if(buscar_pelicula(id_aux)){
 
 
-                            reserva_asiento(retorna_sala(id_aux),id_aux);
-                            pago(15000);
+                            //Freserva_asiento(retorna_sala(id_aux),id_aux);
+                            pago((reserva_asiento(retorna_sala(id_aux),id_aux)));
 
 
 
@@ -629,7 +629,7 @@ void printsala(int num_sala){
 
 }
 
-void reserva_asiento(int num_sala,int id_aux){
+int reserva_asiento(int num_sala,int id_aux){
 
     int fila,columna;
 
@@ -646,7 +646,7 @@ void reserva_asiento(int num_sala,int id_aux){
         cout<<"Numero de sala no existe"<<endl;
     }
     string sillas;
-    int Num_salas;
+    int Num_salas, costo=7000;
     ifstream Leer;
     Leer.open("salas.txt",ios::in);
     Leer>>Num_salas;
@@ -694,7 +694,14 @@ void reserva_asiento(int num_sala,int id_aux){
 
         actualizar_venta(id_aux,1);
 
+
+
+
         sillas="";
+
+
+
+
         for (int i=0;i<fila;i++) {
             for (int j=0;j<columna;j++) {
                 sillas=sillas+matriz[i][j];
@@ -703,14 +710,29 @@ void reserva_asiento(int num_sala,int id_aux){
 
         }
     modificar_asiento(num_sala,sillas);
+    if((num_sala>=1 && num_sala<=5) || (num_sala>=9 && num_sala<=10)){
 
+        if(num_sala==0 || fila_usu==1){ //Es preferencial
+            costo=costo+5000;
+
+        }
+    }
+    else if (num_sala>=6 && num_sala<=8) {// Es 3d
+        costo=costo+10000;
+        if(num_sala==0 || fila_usu==1){ //Es preferencial
+            costo=costo+5000;
+
+        }
+    }
 
 
     }
     else{
         cout<<"Asiento ocupado."<<endl;
+        costo=0;
 
     }
+    return costo;
 
 }
 
